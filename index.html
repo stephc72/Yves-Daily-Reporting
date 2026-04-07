@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yves — Daily Sales Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #236192;
+    --blue-bright: #0082BA;
+    --green: #046A38;
+    --grey: #707372;
+    --grey-light: #f4f5f6;
+    --grey-mid: #e2e4e6;
+    --black: #1A1A1A;
+    --white: #ffffff;
+    --warn: #e67e22;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #f0f2f4; color: var(--black); min-height: 100vh; }
+
+  .header { background: var(--blue); padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(35,97,146,0.18); }
+  .wordmark { font-family: 'Montserrat', sans-serif; font-size: 20px; letter-spacing: -0.5px; }
+  .wordmark .c { color: var(--blue-bright); font-weight: 400; }
+  .wordmark .n { color: #c8d8e4; font-weight: 700; }
+  .header-right { font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .tab-bar { display: flex; background: var(--white); box-shadow: 0 1px 5px rgba(0,0,0,0.08); position: sticky; top: 53px; z-index: 100; }
+  .tab-btn { flex: 1; padding: 13px 8px; border: none; background: transparent; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--grey); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s; }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); background: #f5f9fc; }
+
+  .main { max-width: 800px; margin: 0 auto; padding: 24px 16px 80px; }
+
+  .streak-bar { background: var(--white); border-left: 4px solid var(--blue); border-radius: 4px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 5px rgba(0,0,0,0.07); }
+  .streak-bar.warn { border-left-color: var(--warn); background: #fff8f0; }
+  .s-label { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--grey); }
+  .s-val { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 800; color: var(--blue); }
+  .streak-bar.warn .s-val { color: var(--warn); }
+
+  .missed-alert { background: #fff3cd; border-left: 4px solid var(--warn); border-radius: 4px; padding: 12px 16px; margin-bottom: 16px; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; color: #7a5a00; display: none; }
+
+  .date-title { font-family: 'Montserrat', sans-serif; font-size: 22px; font-weight: 800; color: var(--blue); margin-bottom: 20px; }
+
+  .card { background: var(--white); border-radius: 6px; margin-bottom: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); overflow: hidden; }
+  .card-header { background: var(--blue); padding: 10px 18px; display: flex; align-items: center; gap: 10px; }
+  .card-num { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.45); letter-spacing: 1.5px; }
+  .card-title { font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; color: var(--white); letter-spacing: 1px; text-transform: uppercase; }
+  .card-body { padding: 16px 18px; }
+
+  .field-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--grey-mid); gap: 16px; }
+  .field-row:last-child { border-bottom: none; }
+  .field-label { font-size: 13px; color: var(--black); font-weight: 500; flex: 1; }
+  .field-sub { font-size: 11px; color: var(--grey); margin-top: 2px; }
+
+  .counter { display: flex; align-items: center; border: 1.5px solid var(--grey-mid); border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+  .counter-btn { width: 30px; height: 34px; border: none; background: var(--grey-light); color: var(--blue); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; transition: background 0.15s; }
+  .counter-btn:hover { background: #dde4ea; }
+  .counter-val { width: 40px; height: 34px; border: none; border-left: 1.5px solid var(--grey-mid); border-right: 1.5px solid var(--grey-mid); text-align: center; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700; color: var(--blue); background: var(--white); outline: none; }
+
+  .revenue-input { width: 120px; border: 1.5px solid var(--grey-mid); border-radius: 4px; padding: 8px 10px; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700; color: var(--blue); text-align: center; outline: none; background: var(--grey-light); }
+  .revenue-input:focus { background: var(--white); border-color: var(--blue-bright); }
+
+  .source-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+  .source-tag { padding: 5px 11px; border-radius: 3px; border: 1.5px solid var(--grey-mid); font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; color: var(--grey); cursor: pointer; transition: all 0.15s; user-select: none; background: var(--white); }
+  .source-tag.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+
+  .pipeline-stages { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .p-item { display: flex; align-items: center; justify-content: space-between; background: var(--grey-light); border-radius: 4px; padding: 10px 12px; border-left: 3px solid var(--grey-mid); transition: border-color 0.2s; }
+  .p-item.active { border-left-color: var(--blue); background: #eef4fa; }
+  .p-item-label { font-size: 12px; font-weight: 500; }
+  .mini-counter { display: flex; align-items: center; gap: 6px; }
+  .mini-btn { width: 24px; height: 24px; border-radius: 3px; border: 1.5px solid var(--grey-mid); background: var(--white); color: var(--blue); font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; transition: all 0.15s; }
+  .mini-btn:hover { background: var(--blue); color: var(--white); border-color: var(--blue); }
+  .mini-val { font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 700; color: var(--blue); min-width: 20px; text-align: center; }
+
+  .field-note { width: 100%; border: 1.5px solid var(--grey-mid); border-radius: 4px; padding: 9px 12px; font-family: 'Inter', sans-serif; font-size: 13px; color: var(--black); resize: vertical; min-height: 68px; outline: none; background: var(--grey-light); transition: border-color 0.15s; }
+  .field-note:focus { border-color: var(--blue-bright); background: var(--white); }
+  .field-note::placeholder { color: #aab; }
+
+  .submit-area { background: var(--white); border-radius: 6px; padding: 20px 18px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); margin-top: 14px; }
+  .submit-note { font-size: 12px; color: var(--grey); margin-bottom: 14px; line-height: 1.5; }
+  .btn-submit { width: 100%; padding: 14px; background: var(--blue); color: var(--white); border: none; border-radius: 5px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: background 0.2s; }
+  .btn-submit:hover { background: #1a4e75; }
+  .btn-gmail { width: 100%; padding: 11px; background: var(--white); color: var(--blue); border: 2px solid var(--blue); border-radius: 5px; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+  .btn-gmail:hover { background: var(--blue); color: var(--white); }
+  .btn-gmail.copied { background: var(--green); border-color: var(--green); color: white; }
+
+  .submitted-banner { background: #edfaf3; border: 1px solid #b2dfc7; border-left: 4px solid var(--green); border-radius: 5px; padding: 18px; text-align: center; display: none; margin-bottom: 14px; }
+  .submitted-banner h2 { font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 800; color: var(--green); margin-bottom: 5px; }
+  .submitted-banner p { font-size: 12px; color: #2d6b4a; }
+  .btn-edit { margin-top: 12px; padding: 9px 18px; background: transparent; border: 1.5px solid var(--green); border-radius: 4px; color: var(--green); font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+
+  .history-card { background: var(--white); border-radius: 5px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 1px 5px rgba(0,0,0,0.06); border-left: 3px solid var(--blue-bright); }
+  .history-date { font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+  .history-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 8px; }
+  .h-stat { background: var(--grey-light); border-radius: 3px; padding: 6px 8px; text-align: center; }
+  .h-val { font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 800; color: var(--blue); }
+  .h-label { font-size: 9px; color: var(--grey); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px; }
+  .h-note { font-size: 12px; color: #555; font-style: italic; border-top: 1px solid var(--grey-mid); padding-top: 7px; margin-top: 5px; }
+
+  @media (max-width: 500px) {
+    .pipeline-stages { grid-template-columns: 1fr; }
+    .history-grid { grid-template-columns: repeat(2,1fr); }
+    .header { padding: 12px 14px; }
+    .main { padding: 16px 10px 80px; }
+  }
+
+  /* ── SCOREBOARD ── */
+  .score-hero { background: var(--blue); border-radius: 6px; padding: 22px 18px; margin-bottom: 14px; color: white; text-align: center; }
+  .score-hero-eyebrow { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; margin-bottom: 8px; }
+  .score-hero-amount { font-family: 'Montserrat', sans-serif; font-size: 46px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+  .score-hero-target { font-size: 13px; opacity: 0.6; margin-top: 6px; font-weight: 500; }
+  .score-progress-wrap { background: rgba(255,255,255,0.18); border-radius: 100px; height: 8px; margin: 14px 0 6px; overflow: hidden; }
+  .score-progress-bar { height: 100%; border-radius: 100px; background: #fff; transition: width 1.2s ease; min-width: 3px; }
+  .score-pct { font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; opacity: 0.75; }
+  .score-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .score-card { background: var(--white); border-radius: 6px; padding: 14px 12px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.07); }
+  .score-card-val { font-family: 'Montserrat', sans-serif; font-size: 22px; font-weight: 800; color: var(--blue); line-height: 1; }
+  .score-card-val.ok { color: var(--green); }
+  .score-card-val.warn { color: var(--warn); }
+  .score-card-label { font-size: 10px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; }
+  .score-card-sub { font-size: 10px; color: #bbb; margin-top: 2px; }
+  .pace-band { border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
+  .pace-band.on-track { background: #edf7f2; border-left: 4px solid var(--green); }
+  .pace-band.behind { background: #fff8ee; border-left: 4px solid var(--warn); }
+  .pace-band.far-behind { background: #fef0ef; border-left: 4px solid #c0392b; }
+  .pace-band-title { font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .pace-band.on-track .pace-band-title { color: var(--green); }
+  .pace-band.behind .pace-band-title { color: #7a5a00; }
+  .pace-band.far-behind .pace-band-title { color: #c0392b; }
+  .pace-band-msg { font-size: 12px; font-weight: 500; color: var(--black); line-height: 1.5; }
+  .score-section-label { font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); margin-bottom: 8px; }
+  .score-update-card { background: var(--white); border-radius: 6px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 5px rgba(0,0,0,0.07); }
+  .score-update-card label { display: block; font-size: 11px; font-weight: 600; color: var(--grey); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .score-update-card input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--grey-mid); border-radius: 4px; font-family: 'Montserrat', sans-serif; font-size: 22px; font-weight: 800; color: var(--blue); text-align: center; background: var(--grey-light); outline: none; }
+  .score-update-card input:focus { border-color: var(--blue-bright); background: white; }
+  .btn-save-score { width: 100%; padding: 12px; background: var(--blue); color: white; border: none; border-radius: 4px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+  .btn-save-score:hover { background: #1a4e75; }
+  .btn-save-score.saved { background: var(--green); }
+  .milestone-list { background: var(--white); border-radius: 6px; padding: 6px 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.07); margin-bottom: 14px; }
+  .milestone-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--grey-mid); }
+  .milestone-row:last-child { border-bottom: none; }
+  .m-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .m-dot.hit { background: var(--green); }
+  .m-dot.next { background: var(--blue); box-shadow: 0 0 0 3px rgba(35,97,146,0.15); }
+  .m-dot.future { background: var(--grey-mid); }
+  .m-label { flex: 1; font-size: 12px; font-weight: 500; }
+  .m-label.hit { color: var(--grey); text-decoration: line-through; }
+  .m-label.next { color: var(--blue); font-weight: 700; }
+  .m-label.future { color: var(--grey); }
+  .m-amount { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 700; }
+  .m-amount.hit { color: var(--green); }
+  .m-amount.next { color: var(--blue); }
+  .m-amount.future { color: var(--grey-mid); }
+  .score-footer { font-size: 10px; color: var(--grey); text-align: center; padding: 8px 0 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="wordmark"><span class="c">concept</span><span class="n">72</span></div>
+  <div class="header-right">Yves — Sales Report</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('today')">Today's Report</button>
+  <button class="tab-btn" onclick="showTab('scoreboard')">Scoreboard</button>
+  <button class="tab-btn" onclick="showTab('history')">History</button>
+</div>
+
+<div class="main">
+
+  <div class="missed-alert" id="missedAlert">⚠ Yesterday's report was not submitted. Log today's activity — do not skip twice.</div>
+  <div class="streak-bar" id="streakBar">
+    <div><div class="s-label">Consecutive Days Filed</div><div class="s-val" id="streakVal">0</div></div>
+    <div style="text-align:right"><div class="s-label">Last Filed</div><div style="font-family:'Montserrat',sans-serif;font-size:12px;font-weight:700;color:var(--grey)" id="lastFiled">—</div></div>
+  </div>
+
+  <!-- TODAY -->
+  <div id="tabToday">
+    <div class="date-title" id="dateTitle"></div>
+
+    <div class="submitted-banner" id="submittedBanner">
+      <h2>✓ Report Filed</h2>
+      <p id="submittedTime"></p>
+      <button class="btn-edit" onclick="editReport()">Edit Today's Report</button>
+    </div>
+
+    <div id="reportForm">
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">01</span><span class="card-title">New Leads Entered to LMN</span></div>
+        <div class="card-body">
+          <div class="field-row">
+            <div><div class="field-label">Total new leads logged today</div><div class="field-sub">Must be in LMN before marking here</div></div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('newLeads',-1)">−</button><input class="counter-val" id="newLeads" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('newLeads',1)">+</button></div>
+          </div>
+          <div style="padding-top:10px">
+            <div class="field-label" style="font-size:12px;margin-bottom:6px">Lead sources</div>
+            <div class="source-tags">
+              <span class="source-tag" onclick="toggleSource(this)">Trade Show</span>
+              <span class="source-tag" onclick="toggleSource(this)">Inbound Ad</span>
+              <span class="source-tag" onclick="toggleSource(this)">Landscaping Partner</span>
+              <span class="source-tag" onclick="toggleSource(this)">Referral</span>
+              <span class="source-tag" onclick="toggleSource(this)">Cold Outreach</span>
+              <span class="source-tag" onclick="toggleSource(this)">Other</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">02</span><span class="card-title">Consultations</span></div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field-label">Booked today</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('consBooked',-1)">−</button><input class="counter-val" id="consBooked" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('consBooked',1)">+</button></div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Completed today</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('consCompleted',-1)">−</button><input class="counter-val" id="consCompleted" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('consCompleted',1)">+</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">03</span><span class="card-title">Proposals &amp; Closes</span></div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field-label">Proposals sent today</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('propSent',-1)">−</button><input class="counter-val" id="propSent" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('propSent',1)">+</button></div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Projects closed today</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('closed',-1)">−</button><input class="counter-val" id="closed" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('closed',1)">+</button></div>
+          </div>
+          <div class="field-row">
+            <div><div class="field-label">Revenue closed today ($)</div><div class="field-sub">Estimate value if deposit not yet received</div></div>
+            <input type="number" id="revenue" class="revenue-input" min="0" step="100" placeholder="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">04</span><span class="card-title">Client Care Membership</span></div>
+        <div class="card-body">
+          <div class="field-row">
+            <div><div class="field-label">Membership conversations today</div><div class="field-sub">Phone, email, or in-person</div></div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('memberConvo',-1)">−</button><input class="counter-val" id="memberConvo" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('memberConvo',1)">+</button></div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Memberships confirmed today</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('memberClosed',-1)">−</button><input class="counter-val" id="memberClosed" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('memberClosed',1)">+</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">05</span><span class="card-title">Follow-Up Cadence Executed</span></div>
+        <div class="card-body">
+          <div style="font-size:12px;color:var(--grey);margin-bottom:10px">Touchpoints completed today per cadence stage</div>
+          <div class="pipeline-stages">
+            <div class="p-item" id="pi-d2"><div class="p-item-label">Day 2</div><div class="mini-counter"><button class="mini-btn" onclick="adjustMini('fu_d2',-1)">−</button><span class="mini-val" id="fu_d2">0</span><button class="mini-btn" onclick="adjustMini('fu_d2',1)">+</button></div></div>
+            <div class="p-item" id="pi-d5"><div class="p-item-label">Day 5</div><div class="mini-counter"><button class="mini-btn" onclick="adjustMini('fu_d5',-1)">−</button><span class="mini-val" id="fu_d5">0</span><button class="mini-btn" onclick="adjustMini('fu_d5',1)">+</button></div></div>
+            <div class="p-item" id="pi-d10"><div class="p-item-label">Day 10</div><div class="mini-counter"><button class="mini-btn" onclick="adjustMini('fu_d10',-1)">−</button><span class="mini-val" id="fu_d10">0</span><button class="mini-btn" onclick="adjustMini('fu_d10',1)">+</button></div></div>
+            <div class="p-item" id="pi-d21"><div class="p-item-label">Day 21</div><div class="mini-counter"><button class="mini-btn" onclick="adjustMini('fu_d21',-1)">−</button><span class="mini-val" id="fu_d21">0</span><button class="mini-btn" onclick="adjustMini('fu_d21',1)">+</button></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">06</span><span class="card-title">Partner Outreach</span></div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field-label">Landscaping partner touchpoints today</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('partnerTouch',-1)">−</button><input class="counter-val" id="partnerTouch" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('partnerTouch',1)">+</button></div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">New partners added to database</div>
+            <div class="counter"><button class="counter-btn" onclick="adjust('partnerNew',-1)">−</button><input class="counter-val" id="partnerNew" type="number" value="0" min="0"><button class="counter-btn" onclick="adjust('partnerNew',1)">+</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-num">07</span><span class="card-title">Notes &amp; Flags for Steph</span></div>
+        <div class="card-body">
+          <div style="margin-bottom:12px">
+            <div class="field-label" style="margin-bottom:6px">Key wins, blockers, or anything Steph needs to know</div>
+            <textarea class="field-note" id="notes" placeholder="e.g. Jenkins — no answer, rescheduled Thursday. Trade show lead confirmed consultation."></textarea>
+          </div>
+          <div>
+            <div class="field-label" style="margin-bottom:6px">Biggest priority for tomorrow</div>
+            <textarea class="field-note" id="tomorrow" placeholder="e.g. Send Tremblay proposal. Execute Day 5 follow-ups on 3 open estimates." style="min-height:52px"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="submit-area">
+        <div class="submit-note">File before you close for the day. Takes under 2 minutes. Steph receives it immediately.</div>
+        <button class="btn-submit" onclick="submitReport()">STEP 1 — FILE TODAY'S REPORT</button>
+        <div id="sendInstructions" style="display:none;margin-top:14px;background:#f0f6fb;border-left:4px solid var(--blue);border-radius:4px;padding:14px 16px;">
+          <div style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--blue);text-transform:uppercase;margin-bottom:10px;">STEP 2 — SEND TO STEPH</div>
+          <div style="font-size:12px;color:var(--black);margin-bottom:10px;line-height:1.8;">
+            1. Tap <strong>Copy Report</strong> below<br>
+            2. Open Gmail → Compose<br>
+            3. To: <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="36454253465e76555958555346420104185557">[email&#160;protected]</a></strong><br>
+            4. Subject: <strong id="subjectLine"></strong><br>
+            5. Paste in the body → Send
+          </div>
+          <button class="btn-gmail" id="copyBtn" onclick="copyReport()">⎘ COPY REPORT</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCOREBOARD -->
+  <div id="tabScoreboard" style="display:none">
+    <div class="score-hero">
+      <div class="score-hero-eyebrow">2026 Season — Closed Revenue</div>
+      <div class="score-hero-amount" id="sbAmount">$0</div>
+      <div class="score-hero-target">Target: $1,100,000</div>
+      <div class="score-progress-wrap"><div class="score-progress-bar" id="sbBar" style="width:0%"></div></div>
+      <div class="score-pct" id="sbPct">0% of target</div>
+    </div>
+    <div class="score-cards">
+      <div class="score-card"><div class="score-card-val" id="sbWeeks">34</div><div class="score-card-label">Weeks Left</div><div class="score-card-sub">Season ends Dec 1</div></div>
+      <div class="score-card"><div class="score-card-val" id="sbNeeded">$32K</div><div class="score-card-label">Needed / Week</div><div class="score-card-sub">from today forward</div></div>
+      <div class="score-card"><div class="score-card-val" id="sbRunRate">—</div><div class="score-card-label">Current Run Rate</div><div class="score-card-sub">per week at this pace</div></div>
+      <div class="score-card"><div class="score-card-val" id="sbRemaining">$1.10M</div><div class="score-card-label">Still to Close</div><div class="score-card-sub">to hit target</div></div>
+    </div>
+    <div class="pace-band behind" id="sbPaceBand">
+      <div class="pace-band-title" id="sbPaceTitle">Season Is Open</div>
+      <div class="pace-band-msg" id="sbPaceMsg">First close sets the momentum. Get one on the board this week.</div>
+    </div>
+    <div class="score-section-label">Update Closed Revenue</div>
+    <div class="score-update-card">
+      <label>Total Closed Revenue This Season ($)</label>
+      <input type="number" id="sbInput" placeholder="0" inputmode="numeric" min="0">
+      <button class="btn-save-score" id="btnSaveScore" onclick="saveScore()">SAVE REVENUE</button>
+    </div>
+    <div class="score-section-label">Season Milestones</div>
+    <div class="milestone-list" id="milestoneList"></div>
+    <div class="score-footer">Season: Apr 6 – Dec 1, 2026 · 34 weeks · Target $1,100,000</div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tabHistory" style="display:none">
+    <div style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--grey);margin-bottom:12px">Filed Reports — Most Recent First</div>
+    <div id="historyList"></div>
+  </div>
+
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const STORAGE_KEY = 'c72_yves_reports_v3';
+let reports = [];
+try { reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { reports = []; }
+function saveReports() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(reports)); } catch(e){} }
+
+const miniVals = { fu_d2:0, fu_d5:0, fu_d10:0, fu_d21:0 };
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function yesterdayKey() { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
+function formatDate(key) { const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
+function formatShort(key) { const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}); }
+function nowTime() { return new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}); }
+
+function adjust(id, delta) { const el=document.getElementById(id); el.value=Math.max(0,parseInt(el.value||0)+delta); }
+function adjustMini(id, delta) {
+  miniVals[id]=Math.max(0,miniVals[id]+delta);
+  document.getElementById(id).textContent=miniVals[id];
+  const map={fu_d2:'pi-d2',fu_d5:'pi-d5',fu_d10:'pi-d10',fu_d21:'pi-d21'};
+  document.getElementById(map[id]).classList.toggle('active',miniVals[id]>0);
+}
+function toggleSource(el) { el.classList.toggle('active'); }
+
+function init() {
+  document.getElementById('dateTitle').textContent = new Date().toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'});
+  const todayR = reports.find(r=>r.date===todayKey());
+  if (todayR) {
+    document.getElementById('reportForm').style.display='none';
+    document.getElementById('submittedBanner').style.display='block';
+    document.getElementById('submittedTime').textContent='Filed at '+todayR.time;
+    const subject = `concept72 — Sales Report · ${formatDate(todayR.date)}`;
+    document.getElementById('subjectLine').textContent = subject;
+    document.getElementById('sendInstructions').style.display='block';
+  }
+  const yest = reports.find(r=>r.date===yesterdayKey());
+  if (!yest && reports.length>0) { document.getElementById('missedAlert').style.display='block'; document.getElementById('streakBar').classList.add('warn'); }
+  updateStreak();
+}
+
+function updateStreak() {
+  let streak=0; const d=new Date(); let skipped=false;
+  while(true) {
+    const key=d.toISOString().split('T')[0];
+    if(reports.find(r=>r.date===key)){streak++;d.setDate(d.getDate()-1);}
+    else if(!skipped&&key===todayKey()){skipped=true;d.setDate(d.getDate()-1);continue;}
+    else break;
+  }
+  document.getElementById('streakVal').textContent=streak;
+  const last=reports.length?[...reports].sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
+  document.getElementById('lastFiled').textContent=last?formatShort(last.date):'—';
+}
+
+function gatherData() {
+  const sources=Array.from(document.querySelectorAll('.source-tag.active')).map(t=>t.textContent);
+  return {
+    date:todayKey(), time:nowTime(),
+    newLeads:parseInt(document.getElementById('newLeads').value)||0, sources,
+    consBooked:parseInt(document.getElementById('consBooked').value)||0,
+    consCompleted:parseInt(document.getElementById('consCompleted').value)||0,
+    propSent:parseInt(document.getElementById('propSent').value)||0,
+    closed:parseInt(document.getElementById('closed').value)||0,
+    revenue:parseInt(document.getElementById('revenue').value)||0,
+    memberConvo:parseInt(document.getElementById('memberConvo').value)||0,
+    memberClosed:parseInt(document.getElementById('memberClosed').value)||0,
+    fu_d2:miniVals.fu_d2, fu_d5:miniVals.fu_d5, fu_d10:miniVals.fu_d10, fu_d21:miniVals.fu_d21,
+    partnerTouch:parseInt(document.getElementById('partnerTouch').value)||0,
+    partnerNew:parseInt(document.getElementById('partnerNew').value)||0,
+    notes:document.getElementById('notes').value.trim(),
+    tomorrow:document.getElementById('tomorrow').value.trim()
+  };
+}
+
+function submitReport() {
+  const data=gatherData();
+  reports=reports.filter(r=>r.date!==todayKey()); reports.push(data); saveReports();
+  document.getElementById('reportForm').style.display='none';
+  document.getElementById('submittedBanner').style.display='block';
+  document.getElementById('submittedTime').textContent='Filed at '+data.time;
+  document.getElementById('missedAlert').style.display='none';
+  document.getElementById('streakBar').classList.remove('warn');
+  const subject = `concept72 — Sales Report · ${formatDate(data.date)}`;
+  document.getElementById('subjectLine').textContent = subject;
+  document.getElementById('sendInstructions').style.display='block';
+  updateStreak();
+}
+
+function editReport() {
+  const r=reports.find(r=>r.date===todayKey());
+  if(r) {
+    ['newLeads','consBooked','consCompleted','propSent','closed','revenue','memberConvo','memberClosed','partnerTouch','partnerNew'].forEach(id=>{ document.getElementById(id).value=r[id]||0; });
+    document.getElementById('notes').value=r.notes||'';
+    document.getElementById('tomorrow').value=r.tomorrow||'';
+    (r.sources||[]).forEach(s=>{ document.querySelectorAll('.source-tag').forEach(t=>{ if(t.textContent===s)t.classList.add('active'); }); });
+    Object.keys(miniVals).forEach(k=>{ miniVals[k]=r[k]||0; document.getElementById(k).textContent=miniVals[k]; });
+  }
+  document.getElementById('submittedBanner').style.display='none';
+  document.getElementById('reportForm').style.display='block';
+}
+
+function buildReportText(d) {
+  const totalFU = d.fu_d2 + d.fu_d5 + d.fu_d10 + d.fu_d21;
+  return [
+    `concept72 — SALES REPORT`,
+    `${formatDate(d.date)}`,
+    `Filed at ${d.time}`,
+    ``,
+    `01  NEW LEADS`,
+    `Logged to LMN:     ${d.newLeads}`,
+    `Sources:           ${d.sources.length ? d.sources.join(', ') : 'None selected'}`,
+    ``,
+    `02  CONSULTATIONS`,
+    `Booked:            ${d.consBooked}`,
+    `Completed:         ${d.consCompleted}`,
+    ``,
+    `03  PROPOSALS & CLOSES`,
+    `Proposals Sent:    ${d.propSent}`,
+    `Projects Closed:   ${d.closed}`,
+    `Revenue Closed:    $${(d.revenue||0).toLocaleString()}`,
+    ``,
+    `04  CLIENT CARE MEMBERSHIP`,
+    `Conversations:     ${d.memberConvo}`,
+    `Confirmed:         ${d.memberClosed}`,
+    ``,
+    `05  FOLLOW-UP CADENCE`,
+    `Day 2:  ${d.fu_d2}   Day 5:  ${d.fu_d5}   Day 10: ${d.fu_d10}   Day 21: ${d.fu_d21}`,
+    `Total touchpoints: ${totalFU}`,
+    ``,
+    `06  PARTNER OUTREACH`,
+    `Touchpoints:       ${d.partnerTouch}`,
+    `New Added:         ${d.partnerNew}`,
+    ``,
+    `NOTES FOR STEPH`,
+    `${d.notes || '—'}`,
+    ``,
+    `TOMORROW'S PRIORITY`,
+    `${d.tomorrow || '—'}`,
+    ``,
+    `concept72 · Yves Azzi · Outdoor Lighting & Sound Consultant`,
+  ].join('\n');
+}
+
+function copyReport() {
+  const d = gatherData();
+  const text = buildReportText(d);
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ COPIED — NOW OPEN GMAIL, PASTE & SEND TO STEPH';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⎘ COPY REPORT — THEN PASTE INTO GMAIL';
+      btn.classList.remove('copied');
+    }, 4000);
+  }).catch(() => {
+    window.prompt('Copy this report (Ctrl+A, Ctrl+C):', text);
+  });
+}
+
+function renderHistory() {
+  const el=document.getElementById('historyList');
+  if(!reports.length){el.innerHTML='<div style="color:var(--grey);font-size:13px;padding:16px 0">No reports filed yet.</div>';return;}
+  const sorted=[...reports].sort((a,b)=>b.date.localeCompare(a.date));
+  el.innerHTML=sorted.map(r=>{
+    const totalFU=(r.fu_d2||0)+(r.fu_d5||0)+(r.fu_d10||0)+(r.fu_d21||0);
+    return `<div class="history-card">
+      <div class="history-date">${formatDate(r.date)} · ${r.time}</div>
+      <div class="history-grid">
+        <div class="h-stat"><div class="h-val">${r.newLeads}</div><div class="h-label">Leads</div></div>
+        <div class="h-stat"><div class="h-val">${r.consCompleted}</div><div class="h-label">Consults</div></div>
+        <div class="h-stat"><div class="h-val">${r.propSent}</div><div class="h-label">Proposals</div></div>
+        <div class="h-stat"><div class="h-val">$${(r.revenue||0).toLocaleString()}</div><div class="h-label">Revenue</div></div>
+        <div class="h-stat"><div class="h-val">${r.closed}</div><div class="h-label">Closed</div></div>
+        <div class="h-stat"><div class="h-val">${r.memberClosed||0}</div><div class="h-label">Members</div></div>
+        <div class="h-stat"><div class="h-val">${totalFU}</div><div class="h-label">Follow-Ups</div></div>
+        <div class="h-stat"><div class="h-val">${r.partnerTouch||0}</div><div class="h-label">Partners</div></div>
+      </div>
+      ${r.notes?`<div class="h-note">${r.notes.substring(0,120)}${r.notes.length>120?'…':''}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── SCOREBOARD ─────────────────────────────────────────────────
+const SCORE_KEY = 'c72_yves_score_v1';
+const TARGET = 1100000;
+const SEASON_START = new Date('2026-04-06');
+const SEASON_END   = new Date('2026-12-01');
+const MILESTONES = [110000, 275000, 550000, 770000, 1100000];
+const MILESTONE_LABELS = ['First 10% — Momentum','25% — Building','50% — Halfway','70% — Strong','100% — Done'];
+
+function getScore() { return parseFloat(localStorage.getItem(SCORE_KEY)) || 0; }
+function setScore(n) { localStorage.setItem(SCORE_KEY, n); }
+
+function fmtMoney(n) {
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000) return '$' + Math.round(n/1000) + 'K';
+  return '$' + Math.round(n).toLocaleString();
+}
+function sbWeeksLeft() {
+  var ms = SEASON_END - new Date();
+  return Math.max(0, Math.ceil(ms / (7*24*3600*1000)));
+}
+function sbWeeksSince() {
+  var ms = new Date() - SEASON_START;
+  return Math.max(1, ms / (7*24*3600*1000));
+}
+function syncScoreFromReports() {
+  var total = reports.reduce(function(s,r){ return s + (parseFloat(r.revenue)||0); }, 0);
+  if (total > getScore()) setScore(total);
+}
+function renderScoreboard() {
+  syncScoreFromReports();
+  var closed = getScore();
+  var remaining = Math.max(0, TARGET - closed);
+  var pct = Math.min(100, (closed / TARGET) * 100);
+  var wksLeft = sbWeeksLeft();
+  var wksSince = sbWeeksSince();
+  var weeklyNeeded = wksLeft > 0 ? Math.ceil(remaining / wksLeft) : 0;
+  var runRate = Math.round(closed / wksSince);
+
+  document.getElementById('sbInput').value = closed > 0 ? closed : '';
+  document.getElementById('sbAmount').textContent = fmtMoney(closed);
+  document.getElementById('sbBar').style.width = pct.toFixed(1) + '%';
+  document.getElementById('sbPct').textContent = pct.toFixed(1) + '% of target';
+  document.getElementById('sbWeeks').textContent = wksLeft;
+  document.getElementById('sbNeeded').textContent = fmtMoney(weeklyNeeded);
+  document.getElementById('sbRemaining').textContent = fmtMoney(remaining);
+
+  var rrEl = document.getElementById('sbRunRate');
+  rrEl.textContent = closed > 0 ? fmtMoney(runRate) : '—';
+  rrEl.className = 'score-card-val' + (runRate >= weeklyNeeded ? ' ok' : runRate >= weeklyNeeded * 0.75 ? ' warn' : '');
+
+  var band = document.getElementById('sbPaceBand');
+  var ptitle = document.getElementById('sbPaceTitle');
+  var pmsg = document.getElementById('sbPaceMsg');
+  if (closed === 0) {
+    band.className = 'pace-band behind';
+    ptitle.textContent = 'Season Is Open';
+    pmsg.textContent = 'First close sets the momentum. Get one on the board this week.';
+  } else if (runRate >= weeklyNeeded) {
+    band.className = 'pace-band on-track';
+    ptitle.textContent = 'On Track';
+    pmsg.textContent = 'Running at ' + fmtMoney(runRate) + '/week vs. target of ' + fmtMoney(weeklyNeeded) + '/week. Keep the pressure on.';
+  } else if (runRate >= weeklyNeeded * 0.75) {
+    band.className = 'pace-band behind';
+    ptitle.textContent = 'Slightly Behind';
+    pmsg.textContent = 'Closing at ' + fmtMoney(runRate) + '/week. You need ' + fmtMoney(weeklyNeeded) + '/week from here. Gap is closeable — push the pipeline.';
+  } else {
+    band.className = 'pace-band far-behind';
+    ptitle.textContent = 'Needs Acceleration';
+    pmsg.textContent = fmtMoney(weeklyNeeded) + '/week required. Focus on proposals out and follow-up cadence.';
+  }
+
+  var ml = document.getElementById('milestoneList');
+  ml.innerHTML = MILESTONES.map(function(m, i) {
+    var hit = closed >= m;
+    var next = !hit && (i === 0 || closed >= MILESTONES[i-1]);
+    var cls = hit ? 'hit' : next ? 'next' : 'future';
+    return '<div class="milestone-row"><div class="m-dot ' + cls + '"></div><div class="m-label ' + cls + '">' + MILESTONE_LABELS[i] + '</div><div class="m-amount ' + cls + '">' + fmtMoney(m) + '</div></div>';
+  }).join('');
+}
+function saveScore() {
+  var val = parseFloat(document.getElementById('sbInput').value) || 0;
+  setScore(val);
+  renderScoreboard();
+  var btn = document.getElementById('btnSaveScore');
+  btn.textContent = '✓ SAVED';
+  btn.classList.add('saved');
+  setTimeout(function() { btn.textContent = 'SAVE REVENUE'; btn.classList.remove('saved'); }, 2500);
+}
+
+function showTab(tab) {
+  document.getElementById('tabToday').style.display=tab==='today'?'block':'none';
+  document.getElementById('tabScoreboard').style.display=tab==='scoreboard'?'block':'none';
+  document.getElementById('tabHistory').style.display=tab==='history'?'block':'none';
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){
+    b.classList.toggle('active',(i===0&&tab==='today')||(i===1&&tab==='scoreboard')||(i===2&&tab==='history'));
+  });
+  if(tab==='history') renderHistory();
+  if(tab==='scoreboard') renderScoreboard();
+}
+
+init();
+</script>
+</body>
+</html>
